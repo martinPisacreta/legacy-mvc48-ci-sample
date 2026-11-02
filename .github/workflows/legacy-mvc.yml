@@ -1,0 +1,61 @@
+name: Legacy MVC CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: microsoft/setup-msbuild@v3
+      - uses: NuGet/setup-nuget@v4
+        with:
+          nuget-version: latest
+      - name: Restore packages.config dependencies
+        run: |
+          nuget restore LegacyMvc.sln -NonInteractive
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed' }
+      - name: Build solution
+        run: |
+          msbuild LegacyMvc.sln /m /t:Build /p:Configuration=Release '/p:Platform=Any CPU'
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+      - name: Run existing tests
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vs = & $vswhere -latest -products '*' -property installationPath
+          $vstest = Join-Path $vs 'Common7\IDE\Extensions\TestPlatform\vstest.console.exe'
+          $tests = 'tests\LegacyMvc.Tests\bin\Release\LegacyMvc.Tests.dll'
+          if (!(Test-Path $vstest)) { throw 'vstest.console.exe not found' }
+          if (!(Test-Path $tests)) { throw 'Test assembly not found' }
+          & $vstest $tests '/Logger:trx;LogFileName=tests.trx' '/ResultsDirectory:TestResults'
+          if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
+          [xml]$trx = Get-Content 'TestResults\tests.trx' -Raw
+          if ([int]$trx.TestRun.ResultSummary.Counters.total -lt 1) { throw 'No tests were discovered' }
+      - name: Create web deployment package
+        run: |
+          msbuild src\LegacyMvc\LegacyMvc.csproj /p:Configuration=Release /p:DeployOnBuild=true /p:DeployTarget=Package
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }
+          $zip = Get-ChildItem src\LegacyMvc -Recurse -Filter 'LegacyMvc.zip' | Select-Object -First 1
+          if (!$zip) { throw 'LegacyMvc.zip not found' }
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Get-ChildItem $zip.DirectoryName | Copy-Item -Destination artifacts
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: legacy-mvc-package
+          path: artifacts/
+          if-no-files-found: error
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: legacy-mvc-test-results
+          path: TestResults/
+          if-no-files-found: warn

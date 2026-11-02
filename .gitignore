@@ -1,0 +1,12 @@
+# Visual Studio and local settings
+.vs/
+*.suo
+*.user
+*.pubxml.user
+
+# Restored packages and generated outputs
+packages/
+[Bb]in/
+[Oo]bj/
+TestResults/
+artifacts/
