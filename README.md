@@ -4,7 +4,9 @@ Minimal classic, non-SDK-style web application and MSTest project targeting .NET
 
 ## Validation status
 
-**Not compiled or executed.** This sample was prepared on Linux without installing packages or build tools. A Windows GitHub Actions run must establish whether restore, compilation, test discovery and packaging succeed. No passing build is claimed.
+[![Legacy MVC CI](https://github.com/martinPisacreta/legacy-mvc48-ci-sample/actions/workflows/legacy-mvc.yml/badge.svg)](https://github.com/martinPisacreta/legacy-mvc48-ci-sample/actions/workflows/legacy-mvc.yml)
+
+The first run on November 2, 2026 ([run 41474760557](https://github.com/martinPisacreta/legacy-mvc48-ci-sample/actions/runs/41474760557), commit d272ae2) passed on `windows-2022`: packages restored, both projects built in Release, VSTest discovered and passed 2 of 2 MSTest tests, `LegacyMvc.zip` was produced, and both artifacts (`legacy-mvc-package`, `legacy-mvc-test-results`) were uploaded. The sample was written without a local Windows build; GitHub Actions is the only build that has run it.
 
 ## Run in GitHub Actions
 
@@ -37,10 +39,7 @@ Official version indexes: [MVC](https://api.nuget.org/v3-flatcontainer/microsoft
 
 ## Checks still required
 
-- Restore every declared package and confirm dependency compatibility.
-- Build both classic projects in Release on `windows-2022`.
-- Confirm adapter discovery and exactly two passing tests in the TRX report; the copied workflow only rejects a zero-test result.
-- Confirm that `LegacyMvc.zip` and its companion deployment files are generated and uploaded. Inspect their contents.
+- Inspect the contents of the uploaded package, including `SetParameters.xml`.
 - Run the application under IIS or IIS Express and verify routing and Razor rendering.
 
 Unit tests alone do not validate hosting, view compilation or deployment.
